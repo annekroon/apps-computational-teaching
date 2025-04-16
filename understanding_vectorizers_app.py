@@ -85,4 +85,3 @@ with st.expander("Click to learn what each method does"):
 
 # Footer
 st.markdown("---")
-st.markdown("Made for CCS-2 students with Streamlit and sklearn")
