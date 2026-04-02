@@ -197,8 +197,10 @@ questions = [
     (
         "4. When would you prefer Count Vectorizer over TF-IDF?",
         "When raw frequency matters — for example, counting how often a politician mentions a topic, "
-        "or when you are feeding counts into a model that expects integer input (like Naive Bayes). "
-        "TF-IDF is better when you want to compare documents or find what is *characteristic* about each one."
+        "or when you are feeding counts into a model that expects integer input (like Naive Bayes).\n\n"
+        "That said, there is no universal rule. In practice, it is often a matter of **trying both and "
+        "evaluating which works better** for your specific data and task. Do not assume TF-IDF is always "
+        "superior — sometimes raw counts perform just as well or better."
     ),
     (
         "5. What would happen if you applied stemming or lemmatization **before** vectorizing?",
