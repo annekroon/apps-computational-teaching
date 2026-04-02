@@ -1,8 +1,5 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
 # ── Page config ──────────────────────────────────────────────────────────────
@@ -72,10 +69,8 @@ if len(sentences) < 2:
     st.warning("Please enter at least two sentences.")
     st.stop()
 
-# Label documents
 doc_labels = [f"Doc {i+1}" for i in range(len(sentences))]
 
-# Show what was entered
 with st.expander("👀 See your documents"):
     for label, sent in zip(doc_labels, sentences):
         st.markdown(f"**{label}:** {sent}")
@@ -116,36 +111,15 @@ matrix = matrix.round(3)
 st.dataframe(matrix.style.background_gradient(cmap="Blues"), use_container_width=True)
 
 st.caption(
-    "💡 Tip: rows are documents, columns are tokens. "
+    "💡 Rows are documents, columns are tokens. "
     "Darker cells = higher value. "
     "Scroll right if there are many tokens."
 )
 
-# ── Step 5: Heatmap ───────────────────────────────────────────────────────────
+# ── Step 5: Observations ──────────────────────────────────────────────────────
 st.markdown("---")
-st.header("Step 5 — Visualize the matrix")
+st.header("Step 5 — What do you notice?")
 
-fig, ax = plt.subplots(figsize=(max(8, len(tokens) * 0.6), len(sentences) + 1))
-sns.heatmap(
-    matrix,
-    annot=True,
-    fmt=".2f" if method == "TF-IDF Vectorizer" else ".0f",
-    cmap="YlGnBu",
-    linewidths=0.5,
-    linecolor="white",
-    cbar=True,
-    ax=ax,
-)
-ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right", fontsize=10)
-ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=10)
-ax.set_title(f"{method} — heatmap", fontsize=13, pad=12)
-st.pyplot(fig)
-
-# ── Step 6: Observations ──────────────────────────────────────────────────────
-st.markdown("---")
-st.header("Step 6 — What do you notice?")
-
-# Automatically surface a few observations
 common_tokens = [t for t in tokens if matrix[t].gt(0).all()]
 unique_tokens = [t for t in tokens if matrix[t].gt(0).sum() == 1]
 
@@ -165,9 +139,9 @@ if unique_tokens:
 if not common_tokens and not unique_tokens:
     st.markdown("Try adding more sentences to see patterns emerge.")
 
-# ── Step 7: Compare side by side ─────────────────────────────────────────────
+# ── Step 6: Compare side by side ─────────────────────────────────────────────
 st.markdown("---")
-st.header("Step 7 — Compare Count vs TF-IDF side by side")
+st.header("Step 6 — Compare Count vs TF-IDF side by side")
 st.write(
     "The same documents, both methods at once. "
     "Notice how the values differ for tokens that appear in every document."
@@ -179,11 +153,8 @@ tfidf = TfidfVectorizer()
 X_cv = cv.fit_transform(sentences)
 X_tfidf = tfidf.fit_transform(sentences)
 
-tokens_cv = cv.get_feature_names_out()
-tokens_tfidf = tfidf.get_feature_names_out()
-
-df_cv = pd.DataFrame(X_cv.toarray(), columns=tokens_cv, index=doc_labels)
-df_tfidf = pd.DataFrame(X_tfidf.toarray(), columns=tokens_tfidf, index=doc_labels).round(3)
+df_cv = pd.DataFrame(X_cv.toarray(), columns=cv.get_feature_names_out(), index=doc_labels)
+df_tfidf = pd.DataFrame(X_tfidf.toarray(), columns=tfidf.get_feature_names_out(), index=doc_labels).round(3)
 
 col_a, col_b = st.columns(2)
 with col_a:
@@ -198,20 +169,51 @@ st.caption(
     "in both tables. Then pick a token that appears in only one document and do the same."
 )
 
-# ── Step 8: Reflection questions ─────────────────────────────────────────────
+# ── Step 7: Reflection questions ─────────────────────────────────────────────
 st.markdown("---")
-st.header("Step 8 — Reflect")
-st.markdown(
-    """
-Think about these questions — they will come up in the tutorial:
+st.header("Step 7 — Reflect")
+st.write("Think about each question, then click to reveal the answer.")
 
-1. Which tokens get the **highest** TF-IDF scores? Why?
-2. What happens to the word *"the"* in TF-IDF compared to Count Vectorizer?
-3. If you add a fourth sentence that shares many words with Doc 1, what do you expect to happen?
-4. When would you prefer Count Vectorizer over TF-IDF?
-5. What would happen if you applied stemming or lemmatization **before** vectorizing?
-"""
-)
+questions = [
+    (
+        "1. Which tokens get the **highest** TF-IDF scores? Why?",
+        "Tokens that appear frequently in one document but rarely (or never) in the others. "
+        "They are distinctive — they tell you something specific about that document. "
+        "For example, a word that only appears in Doc 2 will get a high TF-IDF score for Doc 2 and 0 for all others."
+    ),
+    (
+        "2. What happens to the word *'the'* in TF-IDF compared to Count Vectorizer?",
+        "In Count Vectorizer, *'the'* gets a high count because it appears many times across documents. "
+        "In TF-IDF, its score is very low (close to 0) because it appears in *every* document — "
+        "it carries no information about what makes one document different from another. "
+        "This is exactly why stopword removal is useful."
+    ),
+    (
+        "3. If you add a fourth sentence that shares many words with Doc 1, what do you expect to happen?",
+        "Those shared words will now appear in more documents, so their IDF (inverse document frequency) "
+        "will decrease — meaning their TF-IDF score will drop. "
+        "Words that were distinctive to Doc 1 become less distinctive once another document uses them too."
+    ),
+    (
+        "4. When would you prefer Count Vectorizer over TF-IDF?",
+        "When raw frequency matters — for example, counting how often a politician mentions a topic, "
+        "or when you are feeding counts into a model that expects integer input (like Naive Bayes). "
+        "TF-IDF is better when you want to compare documents or find what is *characteristic* about each one."
+    ),
+    (
+        "5. What would happen if you applied stemming or lemmatization **before** vectorizing?",
+        "Different surface forms of the same word would be merged into one column. "
+        "For example, *'running'*, *'runs'*, and *'ran'* would all become *'run'* — "
+        "one column instead of three. This reduces the size of the matrix and can improve "
+        "the quality of the representation, especially for smaller corpora."
+    ),
+]
+
+for question, answer in questions:
+    st.markdown(question)
+    with st.expander("💡 Show answer"):
+        st.markdown(answer)
+    st.markdown("")
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown("---")
