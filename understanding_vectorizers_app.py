@@ -1,13 +1,9 @@
 """Interactive Week 4 vectorizer walkthrough. Run with: streamlit run <this file>."""
-import base64
 import html
-import io
 import re
-from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-from PIL import Image
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
 st.set_page_config(page_title="Text vectorization · Big Data", page_icon="◈", layout="wide")
@@ -25,7 +21,6 @@ EXAMPLES = {
         "Climate protests grow\n"
         "City announces a new tram line"
     ),
-    "A word in every text": "Climate\nClimate",
 }
 TOKEN_PATTERN = re.compile(r"(?u)\b\w\w+\b")
 CSS = """
@@ -95,7 +90,6 @@ h3 { font-size:1.13rem!important; font-weight:650!important; padding:.15rem 0!im
 .learn-card { padding:20px; margin:0 0 12px; background:white; border:1px solid var(--line); border-radius:14px; }
 .learn-card h4 { margin:0 0 6px; font-size:16px; color:var(--ink); }
 .learn-card p { margin:0; color:#698085; font-size:13px; line-height:1.6; }
-.animation { display:block; width:100%; max-width:850px; margin:0 auto; border:1px solid var(--line); border-radius:15px; }
 .footer { border-top:1px solid var(--line); padding-top:15px; margin-top:20px; color:#8aa09d; font-size:11px; letter-spacing:.04em; }
 @media(max-width:700px) {
     [data-testid="stMainBlockContainer"] { padding:1.5rem 1rem; }
@@ -123,10 +117,6 @@ def load_example():
 
 def apply_texts():
     st.session_state.source_text = st.session_state.draft_text
-
-
-def toggle_animation():
-    st.session_state.animation_playing = not st.session_state.animation_playing
 
 
 def highlighted_text(text, selected):
@@ -176,26 +166,12 @@ def matrix_html(frame, selected, focused, weights=False, label="Document-term ma
     )
 
 
-@st.cache_data(show_spinner=False)
-def animation_image(path, playing):
-    data = Path(path).read_bytes()
-    if not playing:
-        with Image.open(io.BytesIO(data)) as image:
-            image.seek(image.n_frames - 1)
-            poster = io.BytesIO()
-            image.convert("RGB").save(poster, format="PNG")
-            data = poster.getvalue()
-    mime = "image/gif" if playing else "image/png"
-    return f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}"
-
-
 for key, value in {
     "source_text": EXAMPLES["Transport headlines"],
     "draft_text": EXAMPLES["Transport headlines"],
     "selected_word": "fares",
     "selected_document": 0,
     "method": "Counts",
-    "animation_playing": False,
 }.items():
     if key not in st.session_state:
         st.session_state[key] = value
@@ -332,18 +308,6 @@ with explore:
             "TF-IDF combines counts with inverse document frequency, then normalises each row. "
             "Weights are shown to three decimals; they are not percentages."
         )
-        with st.expander("Why do we count zero cells?"):
-            st.write(
-                f"{count_matrix.count_nonzero()} of {counts.size} cells contain a non-zero count; "
-                f"the remaining {counts.size - count_matrix.count_nonzero()} are zero. "
-                "A cell containing 2 still counts as one non-zero cell. "
-                "For large collections, sparse storage avoids storing all those zeros."
-            )
-        with st.expander("What does the default tokenizer do?"):
-            st.write(
-                "It lowercases the texts and extracts tokens of at least two letters, digits, or underscores. "
-                "Punctuation separates tokens. The examples here keep stopwords and use single words."
-            )
 
 with compare:
     st.markdown("### Same texts. Different numbers.")
@@ -358,60 +322,28 @@ with compare:
         st.markdown("#### How is it weighted?")
         st.html(matrix_html(weights, selected, focused, weights=True, label="TF-IDF weights"))
     st.caption("Each table has its own colour scale. Compare the numbers across methods.")
-    st.html(
-        f'<div class="insight"><h4>Why does “{safe_word}” get this weight?</h4>'
-        f'<p>It appears in <strong>{int(document_frequency[selected])} of {len(sentences)} texts</strong>, '
-        f'giving it an IDF of <strong>{float(idf[selected]):.3f}</strong>. '
-        'Words found in fewer texts get a larger IDF. The final TF-IDF weight also depends on '
-        'the word count and normalisation within each row.</p></div>'
-    )
-    if document_frequency[selected] == len(sentences):
-        st.info(
-            f'“{selected}” is in every text. Its IDF is 1, not 0. '
-            "It can still have a positive TF-IDF weight: common words are not automatically removed."
-        )
-    st.caption("TF-IDF weights are not probabilities, and each row need not add up to 1.")
-    with st.expander("Inspect all document frequencies and IDF weights"):
-        st.dataframe(pd.DataFrame({"Texts containing word": document_frequency, "IDF": idf}).round(3), width="stretch")
-    with st.expander("Try a quick comparison"):
-        st.write(
-            "In the original transport example, “bus” and “fares” each occur once in text A. "
-            "“Bus” occurs in fewer texts and therefore receives a larger IDF and TF-IDF weight. "
-            "Try the “A word in every text” example from Edit texts to see why a common word need not get a zero weight."
-        )
 
 with learn:
-    animation_col, explanation_col = st.columns([1.8, 1], gap="large")
-    with animation_col:
-        st.markdown("### Watch the matrix take shape")
-        st.caption("A worked example using the two transport headlines from the slides.")
-        st.button(
-            "Pause animation" if st.session_state.animation_playing else "Play animation",
-            key="animation-toggle",
-            on_click=toggle_animation,
-            icon=":material/pause:" if st.session_state.animation_playing else ":material/play_arrow:",
-        )
-        gif_path = Path(__file__).with_name("countvectorizer-illustration.gif")
-        if gif_path.is_file():
-            uri = animation_image(str(gif_path), st.session_state.animation_playing)
-            st.html(
-                f'<img class="animation" src="{uri}" alt="Two headlines become a four-word vocabulary, '
-                'then a matrix with rows A and B containing word counts.">'
-            )
-        else:
-            st.info("The illustrated example is also available in the Week 4 vectorizer notebook.")
-    with explanation_col:
+    st.markdown("### How texts become a matrix")
+    fit_col, transform_col, combined_col = st.columns(3, gap="medium")
+    with fit_col:
         st.html(
             '<div class="learn-card"><div class="section-kicker">01 / FIT</div>'
             '<h4>Learn the vocabulary</h4><p>Find the distinct tokens in the collection. '
             'Each token gets a column.</p></div>'
+        )
+    with transform_col:
+        st.html(
             '<div class="learn-card"><div class="section-kicker">02 / TRANSFORM</div>'
             '<h4>Fill in the numbers</h4><p>Count the vocabulary words in each text. '
             'The columns stay in the same order.</p></div>'
+        )
+    with combined_col:
+        st.html(
             '<div class="learn-card"><div class="section-kicker">03 / FIT_TRANSFORM</div>'
             '<h4>Do both in one call</h4><p>Learn the vocabulary and count words in the same collection.</p></div>'
         )
-        st.code('cv = CountVectorizer()\ndtm = cv.fit_transform(texts)', language="python")
+    st.code('cv = CountVectorizer()\ndtm = cv.fit_transform(texts)', language="python")
 
     st.markdown("### A few things to think about")
     questions = [
