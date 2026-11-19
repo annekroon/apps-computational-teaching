@@ -87,9 +87,6 @@ h3 { font-size:1.13rem!important; font-weight:650!important; padding:.15rem 0!im
 .word-stats b { font-size:17px; display:block; color:#204d46; margin-bottom:2px; }
 .note { color:#5f777b; font-size:12px; line-height:1.6; margin:9px 0; }
 .formula { font-size:14px; color:#426963; background:#f0f5f3; border-radius:10px; padding:12px 15px; }
-.learn-card { padding:20px; margin:0 0 12px; background:white; border:1px solid var(--line); border-radius:14px; }
-.learn-card h4 { margin:0 0 6px; font-size:16px; color:var(--ink); }
-.learn-card p { margin:0; color:#698085; font-size:13px; line-height:1.6; }
 .footer { border-top:1px solid var(--line); padding-top:15px; margin-top:20px; color:#8aa09d; font-size:11px; letter-spacing:.04em; }
 @media(max-width:700px) {
     [data-testid="stMainBlockContainer"] { padding:1.5rem 1rem; }
@@ -232,7 +229,7 @@ st.html(
     '</div>'
 )
 
-explore, compare, learn = st.tabs(["Explore the matrix", "Compare methods", "How it works"])
+explore, compare = st.tabs(["Explore the matrix", "Compare methods"])
 
 with explore:
     left, right = st.columns([1, 1.75], gap="large")
@@ -323,46 +320,5 @@ with compare:
         st.html(matrix_html(weights, selected, focused, weights=True, label="TF-IDF weights"))
     st.caption("Each table has its own colour scale. Compare the numbers across methods.")
 
-with learn:
-    st.markdown("### How texts become a matrix")
-    fit_col, transform_col, combined_col = st.columns(3, gap="medium")
-    with fit_col:
-        st.html(
-            '<div class="learn-card"><div class="section-kicker">01 / FIT</div>'
-            '<h4>Learn the vocabulary</h4><p>Find the distinct tokens in the collection. '
-            'Each token gets a column.</p></div>'
-        )
-    with transform_col:
-        st.html(
-            '<div class="learn-card"><div class="section-kicker">02 / TRANSFORM</div>'
-            '<h4>Fill in the numbers</h4><p>Count the vocabulary words in each text. '
-            'The columns stay in the same order.</p></div>'
-        )
-    with combined_col:
-        st.html(
-            '<div class="learn-card"><div class="section-kicker">03 / FIT_TRANSFORM</div>'
-            '<h4>Do both in one call</h4><p>Learn the vocabulary and count words in the same collection.</p></div>'
-        )
-    st.code('cv = CountVectorizer()\ndtm = cv.fit_transform(texts)', language="python")
-
-    st.markdown("### A few things to think about")
-    questions = [
-        ("Does a word found in every text get a TF-IDF weight of zero?",
-         "No. With these defaults its IDF is 1. Its final weight depends on its count and row normalisation. "
-         "If both texts consist only of “climate”, both weights are 1. Stopword removal is a separate choice."),
-        ("What happens if you add a copy of a text?",
-         "Words in that text become more common across the collection. If they were not already in every text, "
-         "their IDF decreases. Final TF-IDF weights need not all decrease, because normalisation also changes."),
-        ("When would you prefer counts?",
-         "When raw frequency answers your research question, such as how often a politician mentions a topic. "
-         "For other tasks, compare representations and evaluate what works with your data."),
-        ("What can stemming or lemmatisation change?",
-         "They can merge word forms into one column. The Porter stemmer turns “running” and “runs” into “run” "
-         "but leaves “ran” unchanged. A suitable lemmatiser can map “ran” to “run” using context. "
-         "Inspect the results and consider whether merging forms suits your research question."),
-    ]
-    for question, answer in questions:
-        with st.expander(question):
-            st.write(answer)
 
 st.html('<div class="footer">BIG DATA AND AUTOMATED CONTENT ANALYSIS · UNIVERSITY OF AMSTERDAM</div>')
